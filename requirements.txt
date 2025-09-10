@@ -8,3 +8,4 @@ scikit-learn
 faiss-cpu
 pandas
 altair
+langchain-groq
