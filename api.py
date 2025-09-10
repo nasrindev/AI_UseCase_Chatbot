@@ -1,31 +1,51 @@
-# api.py
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List
-from models.llm import get_chatgroq_model  # or get_openai_model, get_gemini_model
+from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI()
+# Example chatbot logic (replace with your actual chatbot function)
+def get_bot_response(user_message: str) -> str:
+    # Dummy response for demo
+    return f"Bot reply to: {user_message}"
 
-# Pydantic models for request
-class ChatMessage(BaseModel):
-    role: str
-    content: str
-
+# Request model for /chat endpoint
 class ChatRequest(BaseModel):
-    system_prompt: str
-    messages: List[ChatMessage]
+    message: str
 
-@app.post("/chat")
-def chat_endpoint(request: ChatRequest):
-    # Choose the provider model
-    chat_model = get_chatgroq_model()  # change if you want OpenAI/Gemini
+# Response model for /chat endpoint
+class ChatResponse(BaseModel):
+    reply: str
 
-    # Format messages for the model
-    formatted_messages = [{"role": m.role, "content": m.content} for m in request.messages]
+app = FastAPI(
+    title="AI UseCase Chatbot",
+    description="A simple chatbot API",
+    version="1.0.0"
+)
 
+# Allow CORS for all origins (optional, needed if frontend hosted elsewhere)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Adjust in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Root endpoint
+@app.get("/")
+def root():
+    return {"message": "Welcome to the AI UseCase Chatbot API!"}
+
+# Chat endpoint
+@app.post("/chat", response_model=ChatResponse)
+def chat(request: ChatRequest):
     try:
-        # Call the model
-        response_text = chat_model.invoke(formatted_messages).content
-        return {"response": response_text}
+        user_message = request.message
+        bot_reply = get_bot_response(user_message)
+        return ChatResponse(reply=bot_reply)
     except Exception as e:
-        return {"response": f"⚠️ Error: {str(e)}"}
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Optional: health check
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
